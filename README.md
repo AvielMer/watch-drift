@@ -36,6 +36,6 @@ pip install -r requirements.txt
 python watch_drift_gui.py
 ```
 
-## ❤️ About
+
 
 Made with ❤️ for watch enthusiasts who care about precision.
