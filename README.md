@@ -22,6 +22,11 @@ wget https://raw.githubusercontent.com/AvielMer/watch-drift/main/install-watchdr
 chmod +x install-watchdrift.sh
 ./install-watchdrift.sh
 ```
+### Uninstall
+**To completely remove the app and desktop shortcut, run:**
+```bash
+Bash~/WatchDrift-App/install-watchdrift.sh --uninstall
+```
 
 ### Manual Installation
 
