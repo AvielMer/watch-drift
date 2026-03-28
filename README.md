@@ -20,7 +20,7 @@ chmod +x install-watchdrift.sh
 ./install-watchdrift.sh
 
 
-##Manual Installation:**
+##Manual Installation:
 Bashgit clone https://github.com/AvielMer/watch-drift.git
 cd watch-drift
 python3 -m venv venv
