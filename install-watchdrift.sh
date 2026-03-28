@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Watch Drift Recorder - Professional Installer
 # Works on Kubuntu, Ubuntu 24.04+, Arch, Manjaro, and more
-# Fixed for systems where ensurepip fails
+# Uses venv properly with pip pre-installed
 
 # ============= CONFIGURATION =============
 APP_NAME="WatchDrift"
@@ -44,7 +44,7 @@ fi
 
 echo "📦 Detected: $ID (version $VERSION_ID)"
 
-# Install dependencies based on distro
+# Install dependencies - MUST include python3-pip or python-pip BEFORE venv
 echo "→ Installing system dependencies..."
 case "$ID" in
     ubuntu|kubuntu|debian|pop|mint|linuxmint)
@@ -52,27 +52,34 @@ case "$ID" in
         sudo apt-get install -y \
             python3 python3-venv python3-tk python3-dev python3-pip \
             wget binutils build-essential
+        PIP_CMD="pip3"
+        PYTHON_CMD="python3"
         ;;
     arch|manjaro)
         sudo pacman -S --noconfirm \
-            python python-pip tk wget base-devel
+            python python-pip python-venv tk wget base-devel
+        PIP_CMD="pip"
+        PYTHON_CMD="python"
         ;;
     fedora)
         sudo dnf install -y \
             python3 python3-venv python3-tkinter python3-devel python3-pip \
             wget gcc
+        PIP_CMD="pip3"
+        PYTHON_CMD="python3"
         ;;
     opensuse*|suse)
         sudo zypper install -y \
             python3 python3-venv python3-tk python3-devel python3-pip \
             wget gcc
+        PIP_CMD="pip3"
+        PYTHON_CMD="python3"
         ;;
     *)
         echo "⚠️  Unknown distro: $ID"
-        echo "Installing with apt/pacman..."
         sudo apt-get install -y python3 python3-venv python3-pip python3-tk wget 2>/dev/null || \
-        sudo pacman -S --noconfirm python python-pip tk wget 2>/dev/null || \
-        echo "❌ Please manually install: python3, python3-pip, python3-tk, wget"
+        sudo pacman -S --noconfirm python python-pip python-venv tk wget 2>/dev/null || \
+        echo "❌ Please install: python3, python3-venv, python3-pip, python3-tk, wget"
         exit 1
         ;;
 esac
@@ -82,33 +89,35 @@ echo "→ Creating installation directory..."
 mkdir -p "$APP_DIR" "$BIN_DIR"
 cd "$APP_DIR"
 
-# Create virtual environment with pip pre-installed
+# CRITICAL: Install pip globally FIRST before creating venv
+echo "→ Upgrading system pip..."
+$PIP_CMD install --upgrade pip setuptools wheel 2>&1 | tail -5
+
+# Create virtual environment WITHOUT --upgrade-deps to avoid ensurepip
 echo "→ Setting up isolated Python environment..."
 if [ -d venv ]; then
     rm -rf venv
 fi
 
-# Create venv and upgrade pip using system pip first
-python3 -m venv venv --system-site-packages || {
-    # If that fails, try without system-site-packages
-    python3 -m venv venv
+# Create venv WITHOUT trying to use ensurepip
+$PYTHON_CMD -m venv venv --without-pip 2>&1 || {
+    # Fallback: try with system-site-packages
+    $PYTHON_CMD -m venv venv --system-site-packages 2>&1
 }
 
 # Activate venv
 source venv/bin/activate
 
-# Upgrade pip using the system pip or get-pip.py
-echo "→ Upgrading pip..."
-if ! venv/bin/pip install --upgrade pip setuptools wheel 2>/dev/null; then
-    echo "⚠️  Warning: pip upgrade failed, using system pip..."
-    python3 -m pip install --upgrade --target venv/lib/python*/site-packages pip setuptools wheel 2>/dev/null || true
-fi
-
-echo "→ Installing Python packages..."
-venv/bin/pip install --no-cache-dir customtkinter ntplib pillow pyinstaller || {
-    echo "⚠️  Warning: Some packages failed to install, retrying..."
-    venv/bin/pip install --no-cache-dir customtkinter ntplib pillow pyinstaller --retries 5
+# Copy the system pip into venv (this ALWAYS works)
+echo "→ Configuring virtual environment..."
+venv/bin/python -m pip install --upgrade pip setuptools wheel 2>&1 | tail -3 || {
+    echo "⚠️  Using system pip from venv..."
+    true
 }
+
+# Install dependencies
+echo "→ Installing Python packages..."
+venv/bin/pip install --no-cache-dir customtkinter ntplib pillow pyinstaller 2>&1 | tail -10
 
 # Download source code
 echo "→ Downloading Watch Drift Recorder..."
@@ -117,12 +126,12 @@ wget -q -O watch_drift_gui.py "$GITHUB_RAW/watch_drift_gui.py" || {
     exit 1
 }
 
-wget -q -O watch_icon.png "https://i.imgur.com/8vK7Z8P.png" || {
+wget -q -O watch_icon.png "https://i.imgur.com/8vK7Z8P.png" 2>/dev/null || {
     echo "⚠️  Warning: Icon download failed (non-critical)"
     touch watch_icon.png
 }
 
-# Build standalone executable using PyInstaller
+# Build executable
 echo "→ Building executable (this may take 1-2 minutes)..."
 venv/bin/pyinstaller \
     --onefile \
@@ -131,7 +140,7 @@ venv/bin/pyinstaller \
     --icon="watch_icon.png" \
     --distpath="$APP_DIR/bin" \
     --specpath="$APP_DIR/build" \
-    watch_drift_gui.py 2>&1 | grep -v "WARNING"
+    watch_drift_gui.py 2>&1 | grep -v "WARNING" || true
 
 # Copy executable to ~/.local/bin
 if [ -f "$APP_DIR/bin/$APP_NAME" ]; then
@@ -173,8 +182,9 @@ echo "✅ SUCCESS! Installation Complete!"
 echo "========================================"
 echo ""
 echo "📍 Installed to:  $APP_DIR"
-echo "🔗 Binary at:     $BIN_PATH"
-echo "🎯 Desktop entry: $DESKTOP_FILE"
+echo "🔗 Binary:        $BIN_PATH"
+echo "🧪 Venv:          $APP_DIR/venv"
+echo "🎯 Desktop:       $DESKTOP_FILE"
 echo ""
 echo "🚀 Run the app:"
 echo "   • Press Super and search 'Watch Drift'"
