@@ -1,31 +1,46 @@
 #!/usr/bin/env bash
+# ========================================
+#   Watch Drift Recorder - Install / Uninstall
+# ========================================
+
+if [[ "$1" == "--uninstall" ]]; then
+    echo "========================================"
+    echo "   Uninstalling Watch Drift Recorder..."
+    echo "========================================"
+
+    rm -rf ~/WatchDrift-App
+    rm -f ~/Desktop/WatchDrift.desktop
+
+    echo "✅ Uninstallation complete."
+    echo "All files and desktop shortcut have been removed."
+    exit 0
+fi
+
+# ====================== NORMAL INSTALLATION ======================
 echo "========================================"
 echo "   Watch Drift Recorder - Universal Installer"
 echo "========================================"
 
-# Detect distro
+echo "Detecting your Linux distribution..."
+
 if [ -f /etc/os-release ]; then
     . /etc/os-release
 fi
 
-echo "→ Detected: $NAME $VERSION_ID"
-
-# Install system dependencies based on distro
+# Install system dependencies
 if [[ "$ID" == "ubuntu" || "$ID" == "debian" || "$ID_LIKE" == *"ubuntu"* || "$ID_LIKE" == *"debian"* ]]; then
-    echo "→ Installing packages for Ubuntu/Debian/Kubuntu..."
+    echo "→ Ubuntu/Debian/Kubuntu detected"
     sudo apt update -y
     sudo apt install -y python3 python3-venv python3-pip python3-tk wget
 elif [[ "$ID" == "manjaro" || "$ID" == "arch" || "$ID_LIKE" == *"arch"* ]]; then
-    echo "→ Installing packages for Manjaro/Arch..."
-    sudo pacman -Sy --noconfirm python python-pip python-venv tk wget
+    echo "→ Manjaro/Arch detected"
+    sudo pacman -Sy --noconfirm tk python-tk wget
 else
     echo "→ Unknown distro. Trying common packages..."
     sudo apt install -y python3 python3-venv python3-pip python3-tk wget 2>/dev/null || \
-    sudo pacman -Sy --noconfirm python python-pip python-venv tk wget 2>/dev/null || \
-    echo "Warning: Could not auto-install system packages. Please install python3-venv manually."
+    sudo pacman -Sy --noconfirm tk python-tk wget 2>/dev/null || true
 fi
 
-# Create folder
 mkdir -p ~/WatchDrift-App
 cd ~/WatchDrift-App
 
