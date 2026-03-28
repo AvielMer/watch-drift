@@ -2,8 +2,6 @@
 # Watch Drift Recorder - Professional Installer
 # Works on Kubuntu, Ubuntu 24.04+, Arch, and more
 
-set -e  # Exit immediately on error
-
 # ============= CONFIGURATION =============
 APP_NAME="WatchDrift"
 SHARE_DIR="${XDG_DATA_HOME:-$HOME/.local/share}"
@@ -11,6 +9,7 @@ BIN_DIR="${XDG_BIN_HOME:-$HOME/.local/bin}"
 APP_DIR="$SHARE_DIR/$APP_NAME"
 BIN_PATH="$BIN_DIR/$APP_NAME"
 DESKTOP_FILE="$HOME/.local/share/applications/$APP_NAME.desktop"
+OLD_APP_DIR="$HOME/WatchDrift-App"  # Legacy location
 GITHUB_RAW="https://raw.githubusercontent.com/AvielMer/watch-drift/main"
 
 # ============= UNINSTALL =============
@@ -19,8 +18,15 @@ if [[ "$1" == "--uninstall" ]]; then
     echo "   Uninstalling $APP_NAME..."
     echo "========================================"
     
+    # Remove from new location
     rm -rf "$APP_DIR"
     rm -f "$BIN_PATH" "$DESKTOP_FILE" "$HOME/Desktop/$APP_NAME.desktop"
+    
+    # Also remove from old location (for backwards compatibility)
+    rm -rf "$OLD_APP_DIR"
+    
+    # Update desktop database
+    update-desktop-database ~/.local/share/applications 2>/dev/null || true
     
     echo "✅ Uninstallation complete."
     echo "App removed from: $APP_DIR"
@@ -28,6 +34,8 @@ if [[ "$1" == "--uninstall" ]]; then
 fi
 
 # ============= INSTALLATION =============
+set -e  # Exit immediately on error (AFTER uninstall check)
+
 echo "========================================"
 echo "   $APP_NAME - Professional Installer"
 echo "========================================"
@@ -149,6 +157,9 @@ chmod 644 "$DESKTOP_FILE"
 # Also copy to Desktop for convenience
 cp "$DESKTOP_FILE" "$HOME/Desktop/$APP_NAME.desktop" 2>/dev/null || true
 chmod +x "$HOME/Desktop/$APP_NAME.desktop" 2>/dev/null || true
+
+# Update desktop database
+update-desktop-database ~/.local/share/applications 2>/dev/null || true
 
 # Deactivate venv (user doesn't need to use it)
 deactivate 2>/dev/null || true
